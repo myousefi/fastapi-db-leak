@@ -16,7 +16,6 @@ experiment_router = APIRouter(
     tags=["connection-lifetime"],
 )
 router = APIRouter()
-router.include_router(experiment_router)
 
 
 def _run_filters(db: Session) -> IncentiveSearchQueryFilters:
@@ -73,3 +72,6 @@ def get_pool_state() -> dict[str, object]:
         "average_hold_seconds": snapshot.average_hold_seconds,
         "in_flight_holds": snapshot.in_flight_holds,
     }
+
+
+router.include_router(experiment_router)

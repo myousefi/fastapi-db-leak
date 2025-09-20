@@ -22,13 +22,13 @@ class IncentiveDiscoveryService:
     def get_filters(self) -> IncentiveSearchQueryFilters:
         total_users = self._db.exec(
             select(func.count()).select_from(User)
-        ).scalar_one()  # type: ignore[attr-defined]
+        ).one()
         active_users = self._db.exec(
             select(func.count()).select_from(User).where(User.is_active)
-        ).scalar_one()  # type: ignore[attr-defined]
+        ).one()
         total_items = self._db.exec(
             select(func.count()).select_from(Item)
-        ).scalar_one()  # type: ignore[attr-defined]
+        ).one()
 
         return IncentiveSearchQueryFilters(
             total_users=total_users,
