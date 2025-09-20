@@ -1,11 +1,14 @@
-.PHONY: seed-experiments seed-experiments-reset compose-clean compose-debug compose-debug-bg
+.PHONY: db-upgrade seed-experiments seed-experiments-reset compose-clean compose-debug compose-debug-bg
 
 SEED_ARGS ?=
 
-seed-experiments:
+db-upgrade:
+	cd backend && uv run alembic upgrade head
+
+seed-experiments: db-upgrade
 	cd backend && uv run python scripts/seed_experiments.py $(SEED_ARGS)
 
-seed-experiments-reset:
+seed-experiments-reset: db-upgrade
 	cd backend && uv run python scripts/seed_experiments.py --reset $(SEED_ARGS)
 
 compose-clean:

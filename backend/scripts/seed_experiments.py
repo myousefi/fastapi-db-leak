@@ -70,11 +70,12 @@ def ensure_user(
 
 
 def ensure_items(session: Session, user: User, target_count: int) -> int:
-    existing_count = session.exec(
+    existing_count_result = session.exec(
         select(func.count())
         .select_from(Item)
         .where(Item.owner_id == user.id)
-    ).scalar_one()  # type: ignore[attr-defined]
+    ).first()
+    existing_count = int(existing_count_result or 0)
 
     to_create = max(target_count - existing_count, 0)
     if to_create == 0:
