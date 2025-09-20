@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
+    OTEL_TRACING_ENABLED: bool = False
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+    OTEL_EXPORTER_OTLP_INSECURE: bool = True
+    OTEL_EXPORTER_OTLP_TIMEOUT: float = 10.0
+    OTEL_EXPORTER_OTLP_HEADERS: str | None = None
+    OTEL_SERVICE_NAME: str | None = None
+    OTEL_SERVICE_VERSION: str | None = None
+    OTEL_FASTAPI_EXCLUDED_URLS: str = ""
+    OTEL_SQLCOMMENTER_ENABLED: bool = True
+
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
     ] = []

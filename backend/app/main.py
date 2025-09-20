@@ -5,6 +5,8 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
+from app.core.db import engine
+from app.observability.tracing import setup_tracing
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -31,3 +33,5 @@ if settings.all_cors_origins:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+setup_tracing(app, engine=engine)
