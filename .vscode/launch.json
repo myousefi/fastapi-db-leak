@@ -15,7 +15,23 @@
             ],
             "cwd": "${workspaceFolder}/backend",
             "jinja": true,
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/.env"
         },
+        {
+            "name": "Attach FastAPI backend (Docker debug profile)",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/backend",
+                    "remoteRoot": "/app"
+                }
+            ],
+            "justMyCode": false
+        }
     ]
 }

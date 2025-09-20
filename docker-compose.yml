@@ -18,7 +18,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
 
-  backend:
+  backend: &backend-base
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
     build:
       context: ./backend
@@ -41,6 +41,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend-debug:
+    <<: *backend-base
+    profiles: ["debug"]
+    command:
+      [
+        "uv",
+        "run",
+        "--with",
+        "debugpy",
+        "python",
+        "-m",
+        "debugpy",
+        "--listen",
+        "0.0.0.0:5678",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ]
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/scripts:/app/scripts
+      - ./backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./backend/uv.lock:/app/uv.lock:ro
+    ports:
+      - "8000:8000"
+      - "5678:5678"
 
 volumes:
   app-db-data:
