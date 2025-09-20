@@ -19,7 +19,7 @@
         },
         {
             "name": "Attach FastAPI backend (Docker debug profile)",
-            "type": "python",
+            "type": "debugpy",
             "request": "attach",
             "connect": {
                 "host": "localhost",
