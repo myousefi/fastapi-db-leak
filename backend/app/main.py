@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine
+from app.observability.logging import setup_logging
 from app.observability.tracing import setup_tracing
 
 
@@ -34,4 +35,5 @@ if settings.all_cors_origins:
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+setup_logging()
 setup_tracing(app, engine=engine)
