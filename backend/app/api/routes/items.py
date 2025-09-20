@@ -20,7 +20,7 @@ def read_items(
 
     if current_user.is_superuser:
         count_statement = select(func.count()).select_from(Item)
-        count = session.exec(count_statement).one()
+        count_value = session.exec(count_statement).scalar_one()  # type: ignore[attr-defined]
         statement = select(Item).offset(skip).limit(limit)
         items = session.exec(statement).all()
     else:
@@ -29,7 +29,7 @@ def read_items(
             .select_from(Item)
             .where(Item.owner_id == current_user.id)
         )
-        count = session.exec(count_statement).one()
+        count_value = session.exec(count_statement).scalar_one()  # type: ignore[attr-defined]
         statement = (
             select(Item)
             .where(Item.owner_id == current_user.id)
@@ -37,8 +37,8 @@ def read_items(
             .limit(limit)
         )
         items = session.exec(statement).all()
-
-    return ItemsPublic(data=items, count=count)
+    items_public = [ItemPublic.model_validate(item) for item in items]
+    return ItemsPublic(data=items_public, count=count_value)
 
 
 @router.get("/{id}", response_model=ItemPublic)

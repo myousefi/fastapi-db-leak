@@ -17,6 +17,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+    ports:
+      - "5432:5432"
 
   backend: &backend-base
     image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
@@ -29,13 +31,12 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_SERVER=db
+      - POSTGRES_SERVER=127.0.0.1
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-    ports:
-      - "8000:8000"
+    network_mode: host
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
@@ -69,9 +70,6 @@ services:
       - ./backend/scripts:/app/scripts
       - ./backend/pyproject.toml:/app/pyproject.toml:ro
       - ./backend/uv.lock:/app/uv.lock:ro
-    ports:
-      - "8000:8000"
-      - "5678:5678"
 
 volumes:
   app-db-data:

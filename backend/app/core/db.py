@@ -2,9 +2,20 @@ from sqlmodel import Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
+from app.core.pool import instrument_engine, set_pool_metrics
 from app.models import User, UserCreate
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_timeout=settings.DB_POOL_TIMEOUT,
+    pool_pre_ping=True,
+)
+
+# Attach lightweight pool instrumentation so experiments can read connection
+# usage live without additional middleware overhead.
+set_pool_metrics(instrument_engine(engine))
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB

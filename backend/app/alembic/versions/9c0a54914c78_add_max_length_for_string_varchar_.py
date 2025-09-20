@@ -17,7 +17,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Adjust the length of the email field in the User table
     op.alter_column('user', 'email',
                existing_type=sa.String(),
@@ -43,7 +43,7 @@ def upgrade():
                existing_nullable=True)
 
 
-def downgrade():
+def downgrade() -> None:
     # Revert the length of the email field in the User table
     op.alter_column('user', 'email',
                existing_type=sa.String(length=255),

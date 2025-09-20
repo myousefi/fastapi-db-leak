@@ -10,6 +10,9 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
+if config.config_file_name is None:
+    raise RuntimeError("Alembic config file name is not set; cannot configure logging.")
+
 fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
@@ -29,11 +32,11 @@ target_metadata = SQLModel.metadata
 # ... etc.
 
 
-def get_url():
+def get_url() -> str:
     return str(settings.SQLALCHEMY_DATABASE_URI)
 
 
-def run_migrations_offline():
+def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
     This configures the context with just a URL
@@ -54,7 +57,7 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def run_migrations_online():
+def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
@@ -62,6 +65,9 @@ def run_migrations_online():
 
     """
     configuration = config.get_section(config.config_ini_section)
+    if configuration is None:
+        raise RuntimeError("Alembic configuration section is missing; check env.py setup.")
+
     configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
         configuration,

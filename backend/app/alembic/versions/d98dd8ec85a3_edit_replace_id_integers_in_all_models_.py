@@ -18,7 +18,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Ensure uuid-ossp extension is available
     op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
 
@@ -54,7 +54,7 @@ def upgrade():
     # Recreate foreign key constraint
     op.create_foreign_key('item_owner_id_fkey', 'item', 'user', ['owner_id'], ['id'])
 
-def downgrade():
+def downgrade() -> None:
     # Reverse the upgrade process
     op.add_column('user', sa.Column('old_id', sa.Integer, autoincrement=True))
     op.add_column('item', sa.Column('old_id', sa.Integer, autoincrement=True))
