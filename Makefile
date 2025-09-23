@@ -1,4 +1,4 @@
-.PHONY: db-upgrade seed-experiments seed-experiments-reset compose-clean compose-debug compose-debug-bg auth-token hey-setup hey hey-filters-di hey-filters-inline hey-filters-di-noquery hey-filters-inline-mw hey-matrix
+.PHONY: db-upgrade seed-experiments seed-experiments-reset compose-clean compose-debug compose-debug-bg auth-token hey-setup hey hey-filters-di hey-filters-inline hey-filters-di-noquery hey-filters-inline-mw hey-matrix hey-matrix-all
 
 SHELL := /bin/bash
 
@@ -12,7 +12,7 @@ HEY_CMD ?= hey
 HEY_BASE_URL ?= http://localhost:8000
 HEY_PATH ?= /api/v1/experiments/connection-lifetime/filters-di
 HEY_CONCURRENCY ?= 50
-HEY_DURATION ?= 30s
+HEY_DURATION ?= 300s
 HEY_RPS ?=
 HEY_METHOD ?=
 HEY_HEADERS ?=
@@ -20,7 +20,7 @@ HEY_EXTRA_ARGS ?=
 HEY_AUTH_TOKEN ?=
 HEY_LOG_DIR ?= logs/hey
 HEY_LABEL ?=
-HEY_MATRIX_CONCURRENCY ?= 5 10 50 100 200
+HEY_MATRIX_CONCURRENCY ?= 5 10 25 50 75 100 250 500 1000
 
 db-upgrade:
 	cd backend && uv run alembic upgrade head
@@ -129,6 +129,12 @@ hey-matrix: hey-setup
 		echo "\n>>> Running matrix step concurrency=$$concurrency"; \
 		$(MAKE) --no-print-directory hey HEY_CONCURRENCY=$$concurrency HEY_LABEL=concurrency-$$concurrency HEY_AUTH_TOKEN="$(HEY_AUTH_TOKEN)" HEY_BASE_URL="$(HEY_BASE_URL)" HEY_PATH="$(HEY_PATH)" HEY_DURATION="$(HEY_DURATION)" HEY_RPS="$(HEY_RPS)" HEY_METHOD="$(HEY_METHOD)" HEY_HEADERS="$(HEY_HEADERS)" HEY_EXTRA_ARGS="$(HEY_EXTRA_ARGS)" || exit $$?; \
 	done
+
+hey-matrix-all:
+	$(MAKE) --no-print-directory hey-matrix HEY_PATH=/api/v1/experiments/connection-lifetime/filters-di
+	$(MAKE) --no-print-directory hey-matrix HEY_PATH=/api/v1/experiments/connection-lifetime/filters-inline
+	$(MAKE) --no-print-directory hey-matrix HEY_PATH=/api/v1/experiments/connection-lifetime/filters-di-noquery
+	$(MAKE) --no-print-directory hey-matrix HEY_PATH=/api/v1/experiments/connection-lifetime/filters-inline-mw
 
 compose-clean:
 	docker compose down --volumes --remove-orphans
