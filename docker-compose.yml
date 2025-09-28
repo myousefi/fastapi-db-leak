@@ -1,0 +1,96 @@
+x-backend-base: &backend-base
+  image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+  build:
+    context: ./backend
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  env_file:
+    - .env
+  environment:
+    - POSTGRES_SERVER=127.0.0.1
+    - POSTGRES_PORT=${POSTGRES_PORT}
+    - POSTGRES_DB=${POSTGRES_DB}
+    - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+  network_mode: host
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+    ports:
+      - "5432:5432"
+
+  backend:
+    <<: *backend-base
+    command:
+      [
+        "uv",
+        "run",
+        "fastapi",
+        "dev",
+        "app/main.py",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ]
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/scripts:/app/scripts
+      - ./backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./backend/uv.lock:/app/uv.lock:ro
+
+  backend-debug:
+    <<: *backend-base
+    profiles: ["debug"]
+    command:
+      [
+        "uv",
+        "run",
+        "--with",
+        "debugpy",
+        "python",
+        "-m",
+        "debugpy",
+        "--listen",
+        "0.0.0.0:5678",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload"
+      ]
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/scripts:/app/scripts
+      - ./backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./backend/uv.lock:/app/uv.lock:ro
+
+volumes:
+  app-db-data:
