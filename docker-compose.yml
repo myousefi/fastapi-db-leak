@@ -48,15 +48,9 @@ services:
       - "8000:8000"
     command:
       [
-        "uv",
-        "run",
-        "fastapi",
-        "dev",
-        "app/main.py",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000"
+        "bash",
+        "-lc",
+        "scripts/prestart.sh && uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000"
       ]
     volumes:
       - ./backend/app:/app/app
@@ -72,23 +66,9 @@ services:
     profiles: ["debug"]
     command:
       [
-        "uv",
-        "run",
-        "--with",
-        "debugpy",
-        "python",
-        "-m",
-        "debugpy",
-        "--listen",
-        "0.0.0.0:5678",
-        "-m",
-        "uvicorn",
-        "app.main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-        "--reload"
+        "bash",
+        "-lc",
+        "scripts/prestart.sh && uv run --with debugpy python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
       ]
     volumes:
       - ./backend/app:/app/app
