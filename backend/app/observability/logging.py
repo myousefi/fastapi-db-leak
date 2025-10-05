@@ -43,6 +43,13 @@ def setup_logging() -> None:
     if root_logger.level > handler_level:
         root_logger.setLevel(handler_level)
 
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logger = logging.getLogger(logger_name)
+        if not any(getattr(existing, "name", None) == _HANDLER_NAME for existing in logger.handlers):
+            logger.addHandler(handler)
+        if logger.level > handler_level:
+            logger.setLevel(handler_level)
+
 
 def _resolve_level(level_name: str) -> int:
     if not level_name:
