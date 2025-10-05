@@ -1,10 +1,11 @@
 from collections.abc import Generator
 from typing import Annotated, cast
 
+import time
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import SessionLocal
 from app.models import Item, User
@@ -68,6 +69,14 @@ def get_db() -> Generator[Session, None, None]:
         session.close()
 
 
+def get_session_factory() -> sessionmaker[Session]:
+    return SessionLocal
+
+
+def get_session_direct() -> Session:
+    return SessionLocal()
+
+
 def get_ctx_good(
     db: Session = Depends(get_db),
     token: str = Depends(extract_bearer_token),
@@ -117,3 +126,45 @@ def di_manual_next() -> Filters:
     # Returning without closing the generator simulates the leak caused by manual iteration.
     return _query_filters(db)
 _LEAKY_GENERATORS: list[Generator[Session, None, None]] = []
+
+
+@router.get("/factory", response_model=Filters)
+def di_factory_short_transactions(
+    token: str = Depends(extract_bearer_token),
+    session_factory: sessionmaker[Session] = Depends(get_session_factory),
+) -> Filters:
+    _ = token  # ensure dependency is enforced without lint warnings
+
+    with session_factory() as session:
+        with session.begin():
+            filters = _query_filters(session)
+
+    time.sleep(0.01)
+
+    with session_factory() as session:
+        with session.begin():
+            session.execute(select(func.count()).select_from(User)).scalar_one()
+
+    return filters
+
+
+@router.get("/good-inline", response_model=Filters)
+def di_good_inline(
+    token: str = Depends(extract_bearer_token),
+    session_factory: sessionmaker[Session] = Depends(get_session_factory),
+) -> Filters:
+    _ = token
+    with session_factory() as session:
+        return _query_filters(session)
+
+
+@router.get("/good-direct", response_model=Filters)
+def di_good_direct(
+    token: str = Depends(extract_bearer_token),
+    session: Session = Depends(get_session_direct),
+) -> Filters:
+    _ = token
+    try:
+        return _query_filters(session)
+    finally:
+        session.close()

@@ -134,3 +134,25 @@ def _sync_impl() -> Filters:
 async def async_bridge(request: Request) -> Filters:
     _require_bearer(request)
     return await run_in_threadpool(_sync_impl)
+
+
+@router.get("/factory", response_model=Filters)
+async def async_factory_short_transactions(
+    request: Request,
+    session_factory: async_sessionmaker[AsyncSession] = Depends(
+        get_async_session_factory
+    ),
+) -> Filters:
+    _require_bearer(request)
+
+    async with session_factory() as session:
+        async with session.begin():
+            filters = await _async_filters(session)
+
+    await anyio.sleep(0)
+
+    async with session_factory() as session:
+        async with session.begin():
+            await session.scalar(select(func.count()).select_from(User))
+
+    return filters

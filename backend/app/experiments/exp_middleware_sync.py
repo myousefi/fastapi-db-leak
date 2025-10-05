@@ -40,6 +40,7 @@ def install_middleware(app) -> None:
             session = SessionLocal()
             try:
                 request.state.db = session
+                request.state.db_factory = SessionLocal
                 response = await call_next(request)
                 return response
             finally:
@@ -58,6 +59,14 @@ def install_middleware(app) -> None:
 def mw_good(request: Request) -> Filters:
     _require_bearer(request)
     return _query_filters(request.state.db)
+
+
+@router.get("/filters-factory", response_model=Filters)
+def mw_good_factory(request: Request) -> Filters:
+    _require_bearer(request)
+    session_factory = getattr(request.state, "db_factory", SessionLocal)
+    with session_factory() as session:
+        return _query_filters(session)
 
 
 @router_leak.get("/filters", response_model=Filters)
