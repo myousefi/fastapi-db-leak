@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-APP ?= app.main_experiments:app
+APP ?= app.main:app
 HOST ?= 0.0.0.0
 PORT ?= 8000
 BASE ?= http://localhost:$(PORT)

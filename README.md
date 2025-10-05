@@ -4,7 +4,7 @@ This repository is a focused playground for measuring how different FastAPI + SQ
 
 ## What’s Included
 
-- FastAPI ASGI app (`backend/app/main_experiments.py`) that exposes the experiment endpoints under `/api/v1/exp/...`.
+- FastAPI ASGI app (`backend/app/main.py`) that exposes the experiment endpoints under `/api/v1/exp/...`.
 - SQLAlchemy models (`backend/app/models.py`) plus synchronous/async session helpers.
 - Minimal observability hooks that push traces and logs to an OTLP collector (e.g. SigNoz).
 - Make targets for running the app (locally or via Docker Compose) and sweeping concurrency with [`hey`](https://github.com/rakyll/hey).

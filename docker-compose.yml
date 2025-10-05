@@ -54,7 +54,7 @@ services:
       [
         "bash",
         "-lc",
-        "scripts/prestart.sh && uv run uvicorn app.main_experiments:app --host 0.0.0.0 --port 8000"
+        "scripts/prestart.sh && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
       ]
     volumes:
       - ./backend/app:/app/app
@@ -72,7 +72,7 @@ services:
       [
         "bash",
         "-lc",
-        "scripts/prestart.sh && uv run --with debugpy python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main_experiments:app --host 0.0.0.0 --port 8000 --reload"
+        "scripts/prestart.sh && uv run --with debugpy python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
       ]
     volumes:
       - ./backend/app:/app/app
