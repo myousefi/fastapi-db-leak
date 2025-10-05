@@ -19,8 +19,13 @@ HEADERS := -H "Authorization: Bearer $(TOKEN)"
 ENDPOINTS := \
 	/api/v1/exp/inline-sync/filters \
 	/api/v1/exp/di-sync/good \
+	/api/v1/exp/di-sync/good-inline \
+	/api/v1/exp/di-sync/good-direct \
+	/api/v1/exp/di-sync/factory \
 	/api/v1/exp/mw-sync/filters \
+	/api/v1/exp/mw-sync/filters-factory \
 	/api/v1/exp/async/di \
+	/api/v1/exp/async/factory \
 	/api/v1/exp/pool/stats \
 	/api/v1/exp/di-sync/leak \
 	/api/v1/exp/di-sync/nocache \
@@ -81,6 +86,7 @@ restart:
 sweep-all:
 	@for ep in $(ENDPOINTS); do \
 		$(MAKE) --no-print-directory restart; \
+		$(MAKE) --no-print-directory check-pool-hard || { echo "Pool dirty before $$ep"; exit 1; }; \
 		$(MAKE) --no-print-directory sweep EP=$$ep; \
 	done
 	@echo "Logs in $(LOG_DIR)"
