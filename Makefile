@@ -12,7 +12,7 @@ DB_POOL_TIMEOUT ?= 30.0
 ANYIO_TOKENS ?= 40
 
 DURATION ?= 30s
-CONC ?= 5 25 50 100 200 400
+CONC ?= 5 25 50 100 250
 QPS ?=
 HEADERS := -H "Authorization: Bearer $(TOKEN)"
 
@@ -51,6 +51,7 @@ compose-rebuild:
 .PHONY: run
 run:
 	cd $(BACKEND_DIR) && \
+		POSTGRES_SERVER=localhost \
 		DB_POOL_SIZE=$(DB_POOL_SIZE) \
 		DB_MAX_OVERFLOW=$(DB_MAX_OVERFLOW) \
 		DB_POOL_TIMEOUT=$(DB_POOL_TIMEOUT) \
