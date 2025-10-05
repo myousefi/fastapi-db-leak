@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 10
-    DB_POOL_TIMEOUT: float = 30.0
+    DB_POOL_TIMEOUT: float = 3.0
 
     OTEL_TRACING_ENABLED: bool = False
     OTEL_LOGS_ENABLED: bool = False
