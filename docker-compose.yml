@@ -1,5 +1,5 @@
 x-backend-base: &backend-base
-  image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+  image: "${DOCKER_IMAGE_BACKEND-backend}:${TAG-latest}"
   build:
     context: ./backend
   restart: unless-stopped
