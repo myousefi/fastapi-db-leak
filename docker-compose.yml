@@ -46,11 +46,13 @@ services:
     <<: *backend-base
     ports:
       - "8000:8000"
+    environment:
+      - ANYIO_TOKENS=${ANYIO_TOKENS:-40}
     command:
       [
         "bash",
         "-lc",
-        "scripts/prestart.sh && uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000"
+        "scripts/prestart.sh && uv run uvicorn app.main_experiments:app --host 0.0.0.0 --port 8000"
       ]
     volumes:
       - ./backend/app:/app/app

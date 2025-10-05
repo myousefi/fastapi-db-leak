@@ -1,11 +1,14 @@
-from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Request, status
-from sqlmodel import Session, func, select
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import engine
 from app.models import Item, User
 
 router = APIRouter(prefix="/exp/inline-sync", tags=["experiments"])
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Filters(BaseModel):
@@ -34,11 +37,13 @@ def extract_bearer_token(request: Request) -> str:
 
 
 def query_filters(db: Session) -> Filters:
-    total_users = int(db.exec(select(func.count()).select_from(User)).one())
+    total_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())
     active_users = int(
-        db.exec(select(func.count()).select_from(User).where(User.is_active)).one()
+        db.execute(
+            select(func.count()).select_from(User).where(User.is_active.is_(True))
+        ).scalar_one()
     )
-    total_items = int(db.exec(select(func.count()).select_from(Item)).one())
+    total_items = int(db.execute(select(func.count()).select_from(Item)).scalar_one())
     return Filters(
         total_users=total_users,
         active_users=active_users,
@@ -49,5 +54,5 @@ def query_filters(db: Session) -> Filters:
 @router.get("/filters", response_model=Filters)
 def filters_inline_sync(request: Request) -> Filters:
     _ = extract_bearer_token(request)
-    with Session(engine) as session:
+    with SessionLocal() as session:
         return query_filters(session)

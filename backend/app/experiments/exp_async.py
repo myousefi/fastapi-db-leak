@@ -3,9 +3,9 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
-from sqlmodel import Session, func, select
-from sqlmodel.ext.asyncio.session import AsyncSession, async_sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 from app.core.db import engine as sync_engine
@@ -29,6 +29,7 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
 )
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
+SessionLocal = sessionmaker(bind=sync_engine, autoflush=False, autocommit=False)
 
 
 async def get_async_db() -> AsyncIterator[AsyncSession]:
@@ -37,15 +38,21 @@ async def get_async_db() -> AsyncIterator[AsyncSession]:
 
 
 async def _async_filters(db: AsyncSession) -> Filters:
-    total_users = int((await db.exec(select(func.count()).select_from(User))).one())
+    total_users = int(
+        (
+            await db.execute(select(func.count()).select_from(User))
+        ).scalar_one()
+    )
     active_users = int(
         (
-            await db.exec(
-                select(func.count()).select_from(User).where(User.is_active)
+            await db.execute(
+                select(func.count()).select_from(User).where(User.is_active.is_(True))
             )
-        ).one()
+        ).scalar_one()
     )
-    total_items = int((await db.exec(select(func.count()).select_from(Item))).one())
+    total_items = int(
+        (await db.execute(select(func.count()).select_from(Item))).scalar_one()
+    )
     return Filters(
         total_users=total_users,
         active_users=active_users,
@@ -61,12 +68,18 @@ async def async_di(db: AsyncSession = Depends(get_async_db)) -> Filters:
 # --- Loop-blocking pattern: sync work executed inline ------------------------
 @router.get("/loop-blocking", response_model=Filters)
 async def async_loop_blocking() -> Filters:
-    with Session(sync_engine) as session:
-        total_users = int(session.exec(select(func.count()).select_from(User)).one())
-        active_users = int(
-            session.exec(select(func.count()).select_from(User).where(User.is_active)).one()
+    with SessionLocal() as session:
+        total_users = int(
+            session.execute(select(func.count()).select_from(User)).scalar_one()
         )
-        total_items = int(session.exec(select(func.count()).select_from(Item)).one())
+        active_users = int(
+            session.execute(
+                select(func.count()).select_from(User).where(User.is_active.is_(True))
+            ).scalar_one()
+        )
+        total_items = int(
+            session.execute(select(func.count()).select_from(Item)).scalar_one()
+        )
         return Filters(
             total_users=total_users,
             active_users=active_users,
@@ -75,12 +88,18 @@ async def async_loop_blocking() -> Filters:
 
 
 def _sync_impl() -> Filters:
-    with Session(sync_engine) as session:
-        total_users = int(session.exec(select(func.count()).select_from(User)).one())
-        active_users = int(
-            session.exec(select(func.count()).select_from(User).where(User.is_active)).one()
+    with SessionLocal() as session:
+        total_users = int(
+            session.execute(select(func.count()).select_from(User)).scalar_one()
         )
-        total_items = int(session.exec(select(func.count()).select_from(Item)).one())
+        active_users = int(
+            session.execute(
+                select(func.count()).select_from(User).where(User.is_active.is_(True))
+            ).scalar_one()
+        )
+        total_items = int(
+            session.execute(select(func.count()).select_from(Item)).scalar_one()
+        )
         return Filters(
             total_users=total_users,
             active_users=active_users,

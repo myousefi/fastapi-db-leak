@@ -2,13 +2,16 @@ from collections.abc import Callable
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from sqlmodel import Session, func, select
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import engine
 from app.models import Item, User
 
 router = APIRouter(prefix="/exp/mw-sync", tags=["experiments"])
 router_leak = APIRouter(prefix="/exp/mw-sync-leak", tags=["experiments"])
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Filters(BaseModel):
@@ -18,11 +21,13 @@ class Filters(BaseModel):
 
 
 def _query_filters(db: Session) -> Filters:
-    total_users = int(db.exec(select(func.count()).select_from(User)).one())
+    total_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())
     active_users = int(
-        db.exec(select(func.count()).select_from(User).where(User.is_active)).one()
+        db.execute(
+            select(func.count()).select_from(User).where(User.is_active.is_(True))
+        ).scalar_one()
     )
-    total_items = int(db.exec(select(func.count()).select_from(Item)).one())
+    total_items = int(db.execute(select(func.count()).select_from(Item)).scalar_one())
     return Filters(
         total_users=total_users,
         active_users=active_users,
@@ -34,7 +39,7 @@ def install_middleware(app) -> None:
     @app.middleware("http")
     async def middleware_good(request: Request, call_next: Callable):
         if request.url.path.startswith("/exp/mw-sync/"):
-            session = Session(engine)
+            session = SessionLocal()
             try:
                 request.state.db = session
                 response = await call_next(request)
@@ -46,7 +51,7 @@ def install_middleware(app) -> None:
     @app.middleware("http")
     async def middleware_leak(request: Request, call_next: Callable):
         if request.url.path.startswith("/exp/mw-sync-leak/"):
-            request.state.db = Session(engine)
+            request.state.db = SessionLocal()
             return await call_next(request)
         return await call_next(request)
 

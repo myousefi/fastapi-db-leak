@@ -3,12 +3,15 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlmodel import Session, func, select
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.db import engine
 from app.models import Item, User
 
 router = APIRouter(prefix="/exp/di-sync", tags=["experiments"])
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Filters(BaseModel):
@@ -41,11 +44,13 @@ def extract_bearer_token(request: Request) -> str:
 
 
 def _query_filters(db: Session) -> Filters:
-    total_users = int(db.exec(select(func.count()).select_from(User)).one())
+    total_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())
     active_users = int(
-        db.exec(select(func.count()).select_from(User).where(User.is_active)).one()
+        db.execute(
+            select(func.count()).select_from(User).where(User.is_active.is_(True))
+        ).scalar_one()
     )
-    total_items = int(db.exec(select(func.count()).select_from(Item)).one())
+    total_items = int(db.execute(select(func.count()).select_from(Item)).scalar_one())
     return Filters(
         total_users=total_users,
         active_users=active_users,
@@ -58,7 +63,7 @@ def _query_filters(db: Session) -> Filters:
 # ---------------------------------------------------------------------------
 
 def get_db() -> Generator[Session, None, None]:
-    session = Session(engine)
+    session = SessionLocal()
     try:
         yield session
     finally:
@@ -79,7 +84,7 @@ def di_good(ctx: dict[str, object] = Depends(get_ctx_good)) -> Filters:
 
 
 def get_ctx_leak(token: str = Depends(extract_bearer_token)) -> dict[str, object]:
-    session = Session(engine)
+    session = SessionLocal()
     return {"db": session, "token": token}
 
 
@@ -90,7 +95,7 @@ def di_leak(ctx: dict[str, object] = Depends(get_ctx_leak)) -> Filters:
 
 
 def get_db_nocache() -> Generator[Session, None, None]:
-    session = Session(engine)
+    session = SessionLocal()
     try:
         yield session
     finally:

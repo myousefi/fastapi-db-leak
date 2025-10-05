@@ -35,6 +35,19 @@ BACKEND_DIR := backend
 UV := uv
 HEY := hey
 
+.PHONY: compose-up compose-down compose-logs compose-rebuild
+compose-up:
+	docker compose up --build -d db backend
+
+compose-down:
+	docker compose down --remove-orphans
+
+compose-logs:
+	docker compose logs -f backend
+
+compose-rebuild:
+	docker compose up --build backend
+
 .PHONY: run
 run:
 	cd $(BACKEND_DIR) && \
