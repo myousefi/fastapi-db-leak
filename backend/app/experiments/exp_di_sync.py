@@ -111,7 +111,9 @@ def di_nocache(
 
 @router.get("/manual-next", response_model=Filters)
 def di_manual_next() -> Filters:
-    generator = get_db()
-    db = next(generator)
+    gen = get_db()
+    _LEAKY_GENERATORS.append(gen)
+    db = next(gen)
     # Returning without closing the generator simulates the leak caused by manual iteration.
     return _query_filters(db)
+_LEAKY_GENERATORS: list[Generator[Session, None, None]] = []
