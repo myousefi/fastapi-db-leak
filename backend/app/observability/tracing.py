@@ -1,7 +1,5 @@
 """Tracing helpers for wiring the application with OpenTelemetry."""
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Iterable, Sequence
 

@@ -6,8 +6,6 @@ instrumentation intentionally avoids any heavy locking so it can be enabled in
 the local demo stack without skewing results.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from threading import Lock
 from time import monotonic
