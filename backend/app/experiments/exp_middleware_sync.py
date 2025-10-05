@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -56,9 +56,26 @@ def install_middleware(app) -> None:
 
 @router.get("/filters", response_model=Filters)
 def mw_good(request: Request) -> Filters:
+    _require_bearer(request)
     return _query_filters(request.state.db)
 
 
 @router_leak.get("/filters", response_model=Filters)
 def mw_leak(request: Request) -> Filters:
+    _require_bearer(request)
     return _query_filters(request.state.db)
+def _require_bearer(request: Request) -> None:
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
