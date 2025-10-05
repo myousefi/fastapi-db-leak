@@ -16,14 +16,12 @@ CONC ?= 5 25 50 100 250
 QPS ?=
 HEADERS := -H "Authorization: Bearer $(TOKEN)"
 
-SAFE_ENDPOINTS := \
+ENDPOINTS := \
 	/api/v1/exp/inline-sync/filters \
 	/api/v1/exp/di-sync/good \
 	/api/v1/exp/mw-sync/filters \
 	/api/v1/exp/async/di \
-	/api/v1/exp/pool/stats
-
-PATHOLOGICAL_ENDPOINTS := \
+	/api/v1/exp/pool/stats \
 	/api/v1/exp/di-sync/leak \
 	/api/v1/exp/di-sync/nocache \
 	/api/v1/exp/di-sync/manual-next \
@@ -31,8 +29,6 @@ PATHOLOGICAL_ENDPOINTS := \
 	/api/v1/exp/async/bridge \
 	/api/v1/exp/async/loop-blocking \
 	/api/v1/exp/longhold/2
-
-ALL_ENDPOINTS := $(SAFE_ENDPOINTS) $(PATHOLOGICAL_ENDPOINTS)
 
 LOG_DIR := logs/$(shell date +%Y%m%d-%H%M%S)
 BACKEND_DIR := backend
@@ -83,7 +79,7 @@ restart:
 	$(MAKE) --no-print-directory wait-healthy
 
 sweep-all:
-	@for ep in $(ALL_ENDPOINTS); do \
+	@for ep in $(ENDPOINTS); do \
 		$(MAKE) --no-print-directory restart; \
 		$(MAKE) --no-print-directory sweep EP=$$ep; \
 	done
