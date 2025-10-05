@@ -1,14 +1,12 @@
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-from app.core.db import engine
+from app.core.db import SessionLocal
 from app.models import Item, User
 
-router = APIRouter(prefix="/exp/inline-sync", tags=["experiments"])
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+router = APIRouter(prefix="/api/v1/exp/inline-sync", tags=["experiments"])
 
 
 class Filters(BaseModel):

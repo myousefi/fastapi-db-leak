@@ -15,7 +15,7 @@ x-backend-base: &backend-base
     - POSTGRES_USER=${POSTGRES_USER?Variable not set}
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+    test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
     interval: 10s
     timeout: 5s
     retries: 5
@@ -48,6 +48,8 @@ services:
       - "8000:8000"
     environment:
       - ANYIO_TOKENS=${ANYIO_TOKENS:-40}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       [
         "bash",
@@ -70,7 +72,7 @@ services:
       [
         "bash",
         "-lc",
-        "scripts/prestart.sh && uv run --with debugpy python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+        "scripts/prestart.sh && uv run --with debugpy python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main_experiments:app --host 0.0.0.0 --port 8000 --reload"
       ]
     volumes:
       - ./backend/app:/app/app

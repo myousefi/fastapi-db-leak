@@ -3,14 +3,12 @@ import time
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-from app.core.db import engine
+from app.core.db import SessionLocal
 from app.models import User
 
 router = APIRouter(prefix="/exp/longhold", tags=["experiments"])
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class HoldResult(BaseModel):

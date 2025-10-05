@@ -14,6 +14,9 @@ from app.experiments import (
     exp_middleware_sync,
     exp_pool_metrics,
 )
+from app.core.db import engine
+from app.observability.logging import setup_logging
+from app.observability.tracing import setup_tracing
 
 
 @asynccontextmanager
@@ -40,6 +43,9 @@ app.include_router(exp_middleware_sync.router_leak)
 app.include_router(exp_async.router)
 app.include_router(exp_longholds.router)
 app.include_router(exp_pool_metrics.router)
+
+setup_logging()
+setup_tracing(app, engine=engine, extra_engines=[exp_async.async_engine])
 
 
 @app.get("/healthz")

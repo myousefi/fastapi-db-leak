@@ -3,15 +3,13 @@ from collections.abc import Callable
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-from app.core.db import engine
+from app.core.db import SessionLocal
 from app.models import Item, User
 
 router = APIRouter(prefix="/exp/mw-sync", tags=["experiments"])
 router_leak = APIRouter(prefix="/exp/mw-sync-leak", tags=["experiments"])
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Filters(BaseModel):

@@ -1,15 +1,10 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "./backend"
-		}
-	],
-	"settings": {
-		"cursorpyright.analysis.exclude": [
-			"**/.venv/*"
-		]
-	}
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "makefile.configureOnOpen": false
+    }
 }

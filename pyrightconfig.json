@@ -1,6 +1,0 @@
-{
-  "$schema": "https://schema.pyright.com",
-  "exclude": [
-    "**/.venv/*"
-  ]
-}

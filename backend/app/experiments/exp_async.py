@@ -5,10 +5,10 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.db import engine as sync_engine
+from app.core.db import SessionLocal, engine as sync_engine
 from app.models import Item, User
 
 router = APIRouter(prefix="/exp/async", tags=["experiments"])
@@ -29,8 +29,6 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
 )
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
-SessionLocal = sessionmaker(bind=sync_engine, autoflush=False, autocommit=False)
-
 
 async def get_async_db() -> AsyncIterator[AsyncSession]:
     async with AsyncSessionLocal() as session:
