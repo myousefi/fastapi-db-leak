@@ -60,8 +60,8 @@ async def otel_pool_attrs(request: Request, call_next):
             "pool.avg_hold_s", pre_snapshot.average_hold_seconds or 0.0
         )
         route = request.scope.get("route")
-        if route and getattr(route, "path", None):
-            span.set_attribute("http.route", route.path)
+        route_path = getattr(route, "path", None) if route else None
+        span.set_attribute("http.route", route_path or request.url.path)
 
     response = await call_next(request)
 

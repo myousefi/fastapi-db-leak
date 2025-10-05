@@ -13,6 +13,7 @@ from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 @dataclass
@@ -23,8 +24,29 @@ class PoolSnapshot:
     total_checkouts: int
     total_checkins: int
     max_concurrent: int
+    total_hold_time: float
+    hold_samples: int
     average_hold_seconds: float | None
     in_flight_holds: list[float]
+
+    def merge(self, other: "PoolSnapshot") -> "PoolSnapshot":
+        total_hold_time = self.total_hold_time + other.total_hold_time
+        hold_samples = self.hold_samples + other.hold_samples
+        average = (
+            total_hold_time / hold_samples
+            if hold_samples
+            else None
+        )
+        return PoolSnapshot(
+            checked_out_now=self.checked_out_now + other.checked_out_now,
+            total_checkouts=self.total_checkouts + other.total_checkouts,
+            total_checkins=self.total_checkins + other.total_checkins,
+            max_concurrent=max(self.max_concurrent, other.max_concurrent),
+            total_hold_time=total_hold_time,
+            hold_samples=hold_samples,
+            average_hold_seconds=average,
+            in_flight_holds=[*self.in_flight_holds, *other.in_flight_holds],
+        )
 
 
 class PoolMetrics:
@@ -90,6 +112,8 @@ class PoolMetrics:
                 total_checkouts=self._total_checkouts,
                 total_checkins=self._total_checkins,
                 max_concurrent=self._max_concurrent,
+                total_hold_time=self._total_hold_time,
+                hold_samples=self._hold_samples,
                 average_hold_seconds=average_hold,
                 in_flight_holds=in_flight,
             )
@@ -104,16 +128,40 @@ def instrument_engine(engine: Engine) -> PoolMetrics:
     return metrics
 
 
-pool_metrics: PoolMetrics | None = None
+_sync_metrics: PoolMetrics | None = None
+_async_metrics: PoolMetrics | None = None
 
 
-def set_pool_metrics(metrics: PoolMetrics) -> None:
-    global pool_metrics
-    pool_metrics = metrics
+def set_pool_metrics_for_sync(metrics: PoolMetrics) -> None:
+    global _sync_metrics
+    _sync_metrics = metrics
+
+
+def set_pool_metrics_for_async(metrics: PoolMetrics) -> None:
+    global _async_metrics
+    _async_metrics = metrics
+
+
+def instrument_async_engine(engine: AsyncEngine) -> PoolMetrics:
+    """Instrument an async engine by wiring into its sync driver."""
+
+    return instrument_engine(engine.sync_engine)
 
 
 def get_pool_snapshot() -> PoolSnapshot | None:
-    metrics = pool_metrics
-    if metrics is None:
+    snapshots: list[PoolSnapshot] = []
+
+    if _sync_metrics is not None:
+        snapshots.append(_sync_metrics.snapshot())
+
+    if _async_metrics is not None:
+        snapshots.append(_async_metrics.snapshot())
+
+    if not snapshots:
         return None
-    return metrics.snapshot()
+
+    merged = snapshots[0]
+    for snapshot in snapshots[1:]:
+        merged = merged.merge(snapshot)
+
+    return merged

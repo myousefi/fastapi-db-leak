@@ -1,14 +1,15 @@
 from collections.abc import AsyncIterator
 
+import anyio
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.db import SessionLocal, engine as sync_engine
+from app.core.db import SessionLocal
+from app.core.pool import instrument_async_engine, set_pool_metrics_for_async
 from app.models import Item, User
 
 router = APIRouter(prefix="/api/v1/exp/async", tags=["experiments"])
@@ -29,10 +30,15 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
 )
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
+set_pool_metrics_for_async(instrument_async_engine(async_engine))
 
 async def get_async_db() -> AsyncIterator[AsyncSession]:
     async with AsyncSessionLocal() as session:
         yield session
+
+
+async def get_async_session_factory() -> async_sessionmaker[AsyncSession]:
+    return AsyncSessionLocal
 
 
 def _require_bearer(request: Request) -> None:

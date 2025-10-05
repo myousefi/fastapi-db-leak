@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.core.pool import instrument_engine, set_pool_metrics
+from app.core.pool import instrument_engine, set_pool_metrics_for_sync
 
 engine = create_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
@@ -17,7 +17,7 @@ SessionLocal = sessionmaker(
     bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
 )
 
-set_pool_metrics(instrument_engine(engine))
+set_pool_metrics_for_sync(instrument_engine(engine))
 
 
 __all__ = ["engine", "SessionLocal"]
