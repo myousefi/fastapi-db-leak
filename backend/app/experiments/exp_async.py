@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -35,6 +35,23 @@ async def get_async_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+def _require_bearer(request: Request) -> None:
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 async def _async_filters(db: AsyncSession) -> Filters:
     total_users = int(
         (
@@ -59,13 +76,15 @@ async def _async_filters(db: AsyncSession) -> Filters:
 
 
 @router.get("/di", response_model=Filters)
-async def async_di(db: AsyncSession = Depends(get_async_db)) -> Filters:
+async def async_di(request: Request, db: AsyncSession = Depends(get_async_db)) -> Filters:
+    _require_bearer(request)
     return await _async_filters(db)
 
 
 # --- Loop-blocking pattern: sync work executed inline ------------------------
 @router.get("/loop-blocking", response_model=Filters)
-async def async_loop_blocking() -> Filters:
+async def async_loop_blocking(request: Request) -> Filters:
+    _require_bearer(request)
     with SessionLocal() as session:
         total_users = int(
             session.execute(select(func.count()).select_from(User)).scalar_one()
@@ -106,5 +125,6 @@ def _sync_impl() -> Filters:
 
 
 @router.get("/bridge", response_model=Filters)
-async def async_bridge() -> Filters:
+async def async_bridge(request: Request) -> Filters:
+    _require_bearer(request)
     return await run_in_threadpool(_sync_impl)
