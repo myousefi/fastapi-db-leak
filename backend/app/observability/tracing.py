@@ -79,22 +79,10 @@ def _instrument_fastapi(app: FastAPI, tracer_provider: TracerProvider) -> None:
 
     excluded_urls = settings.OTEL_FASTAPI_EXCLUDED_URLS or None
 
-    def _server_request_hook(span, scope):  # type: ignore[no-untyped-def]
-        if span is None:
-            return
-        route = scope.get("route")
-        if route is not None and getattr(route, "path", None):
-            span.set_attribute("http.route", route.path)
-        else:
-            path = scope.get("path")
-            if path:
-                span.set_attribute("http.route", path)
-
     FastAPIInstrumentor.instrument_app(
         app,
         tracer_provider=tracer_provider,
         excluded_urls=excluded_urls,
-        server_request_hook=_server_request_hook,
     )
     _FASTAPI_INSTRUMENTED = True
 
