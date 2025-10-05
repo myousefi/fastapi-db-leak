@@ -17,18 +17,18 @@ QPS ?=
 HEADERS := -H "Authorization: Bearer $(TOKEN)"
 
 ENDPOINTS := \
-	/exp/inline-sync/filters \
-	/exp/di-sync/good \
-	/exp/di-sync/leak \
-	/exp/di-sync/nocache \
-	/exp/di-sync/manual-next \
-	/exp/mw-sync/filters \
-	/exp/mw-sync-leak/filters \
-	/exp/async/di \
-	/exp/async/bridge \
-	/exp/async/loop-blocking \
-	/exp/longhold/2 \
-	/exp/pool/stats
+	/api/v1/exp/inline-sync/filters \
+	/api/v1/exp/di-sync/good \
+	/api/v1/exp/di-sync/leak \
+	/api/v1/exp/di-sync/nocache \
+	/api/v1/exp/di-sync/manual-next \
+	/api/v1/exp/mw-sync/filters \
+	/api/v1/exp/mw-sync-leak/filters \
+	/api/v1/exp/async/di \
+	/api/v1/exp/async/bridge \
+	/api/v1/exp/async/loop-blocking \
+	/api/v1/exp/longhold/2 \
+	/api/v1/exp/pool/stats
 
 LOG_DIR := logs/$(shell date +%Y%m%d-%H%M%S)
 BACKEND_DIR := backend
@@ -63,7 +63,7 @@ warmup:
 		curl -sf -H "Authorization: Bearer $(TOKEN)" "$(BASE)$${ep}" >/dev/null || true; \
 	done
 
-EP ?= /exp/inline-sync/filters
+EP ?= /api/v1/exp/inline-sync/filters
 
 .PHONY: sweep
 sweep:
@@ -76,7 +76,7 @@ sweep:
 
 .PHONY: sweep-all
 sweep-all: warmup
-	@for ep in /exp/inline-sync/filters /exp/di-sync/good /exp/di-sync/leak /exp/mw-sync/filters /exp/mw-sync-leak/filters /exp/async/di /exp/async/bridge /exp/async/loop-blocking; do \
+	@for ep in /api/v1/exp/inline-sync/filters /api/v1/exp/di-sync/good /api/v1/exp/di-sync/leak /api/v1/exp/mw-sync/filters /api/v1/exp/mw-sync-leak/filters /api/v1/exp/async/di /api/v1/exp/async/bridge /api/v1/exp/async/loop-blocking; do \
 		$(MAKE) --no-print-directory sweep EP=$$ep; \
 	done
 	@echo "Logs in $(LOG_DIR)"

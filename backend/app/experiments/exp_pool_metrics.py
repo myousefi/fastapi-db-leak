@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from app.core.pool import get_pool_snapshot
 
-router = APIRouter(prefix="/exp/pool", tags=["experiments"])
+router = APIRouter(prefix="/api/v1/exp/pool", tags=["experiments"])
 
 
 class PoolStats(BaseModel):

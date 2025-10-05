@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models import Item, User
 
-router = APIRouter(prefix="/exp/mw-sync", tags=["experiments"])
-router_leak = APIRouter(prefix="/exp/mw-sync-leak", tags=["experiments"])
+router = APIRouter(prefix="/api/v1/exp/mw-sync", tags=["experiments"])
+router_leak = APIRouter(prefix="/api/v1/exp/mw-sync-leak", tags=["experiments"])
 
 
 class Filters(BaseModel):
@@ -36,7 +36,7 @@ def _query_filters(db: Session) -> Filters:
 def install_middleware(app) -> None:
     @app.middleware("http")
     async def middleware_good(request: Request, call_next: Callable):
-        if request.url.path.startswith("/exp/mw-sync/"):
+        if request.url.path.startswith("/api/v1/exp/mw-sync/"):
             session = SessionLocal()
             try:
                 request.state.db = session
@@ -48,7 +48,7 @@ def install_middleware(app) -> None:
 
     @app.middleware("http")
     async def middleware_leak(request: Request, call_next: Callable):
-        if request.url.path.startswith("/exp/mw-sync-leak/"):
+        if request.url.path.startswith("/api/v1/exp/mw-sync-leak/"):
             request.state.db = SessionLocal()
             return await call_next(request)
         return await call_next(request)

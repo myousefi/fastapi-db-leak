@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.db import SessionLocal, engine as sync_engine
 from app.models import Item, User
 
-router = APIRouter(prefix="/exp/async", tags=["experiments"])
+router = APIRouter(prefix="/api/v1/exp/async", tags=["experiments"])
 
 
 class Filters(BaseModel):

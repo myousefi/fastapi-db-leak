@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models import User
 
-router = APIRouter(prefix="/exp/longhold", tags=["experiments"])
+router = APIRouter(prefix="/api/v1/exp/longhold", tags=["experiments"])
 
 
 class HoldResult(BaseModel):

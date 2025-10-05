@@ -4,7 +4,7 @@ This repository is a focused playground for measuring how different FastAPI + SQ
 
 ## What’s Included
 
-- FastAPI ASGI app (`backend/app/main_experiments.py`) that exposes the experiment endpoints under `/exp/...`.
+- FastAPI ASGI app (`backend/app/main_experiments.py`) that exposes the experiment endpoints under `/api/v1/exp/...`.
 - SQLAlchemy models (`backend/app/models.py`) plus synchronous/async session helpers.
 - Minimal observability hooks that push traces and logs to an OTLP collector (e.g. SigNoz).
 - Make targets for running the app (locally or via Docker Compose) and sweeping concurrency with [`hey`](https://github.com/rakyll/hey).
@@ -30,7 +30,7 @@ This repository is a focused playground for measuring how different FastAPI + SQ
 ## Architecture Notes
 
 - Synchronous experiments use a single SQLAlchemy `SessionLocal` dependency; async variants rely on `create_async_engine` + `async_sessionmaker`.
-- `/exp/*` endpoints deliberately cover “good” and “bad” patterns (inline context managers, dependency injection cache misuse, middleware leaks, async loop blocking, etc.).
+- `/api/v1/exp/*` endpoints deliberately cover “good” and “bad” patterns (inline context managers, dependency injection cache misuse, middleware leaks, async loop blocking, etc.).
 - `backend/app/backend_pre_start.py` waits for Postgres and calls `Base.metadata.create_all()` so the schema is always present before the app boots.
 - OpenTelemetry exporters are enabled through environment variables (`OTEL_TRACING_ENABLED`, `OTEL_LOGS_ENABLED`, etc.). When pointing at SigNoz, ensure the backend container can resolve `host.docker.internal`.
 
@@ -38,7 +38,7 @@ This repository is a focused playground for measuring how different FastAPI + SQ
 
 - `make compose-logs` – follow the FastAPI container logs.
 - `make compose-down` – stop the stack and clean up containers.
-- `make sweep EP=/exp/async/loop-blocking CONC="10 50 100"` – sweep a single endpoint with a custom concurrency grid.
+- `make sweep EP=/api/v1/exp/async/loop-blocking CONC="10 50 100"` – sweep a single endpoint with a custom concurrency grid.
 - `ANYIO_TOKENS=200 make compose-up` – override the threadpool tokens for sync experiments.
 
 That’s it—clone, tweak, and run experiments.
