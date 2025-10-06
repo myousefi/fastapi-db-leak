@@ -123,5 +123,22 @@ parse:
 		echo "No logs found at $(PARSE_DIR). Set RUN=<name> if you recorded under a different run."; \
 		exit 1; \
 	fi
-	uv run python scripts/hey_to_csv.py "$(PARSE_DIR)" "$(PARSE_DIR)/summary.csv" "$(RUN)"
-	@echo "Parsed run '$(RUN)' -> $(PARSE_DIR)/summary.csv and $(PARSE_DIR)/summary.json"
+	uv run python scripts/hey_to_csv.py "$(PARSE_DIR)" "$(PARSE_DIR)/summary.json" "$(RUN)"
+	@echo "Parsed run '$(RUN)' -> $(PARSE_DIR)/summary.json"
+
+.PHONY: compare-di
+compare-di:
+	$(MAKE) --no-print-directory sweep RUN=$(RUN) EP=/api/v1/exp/di-sync/good
+	$(MAKE) --no-print-directory sweep RUN=$(RUN) EP=/api/v1/exp/async/di
+	$(MAKE) --no-print-directory parse RUN=$(RUN) PARSE_DIR=$(LOG_ROOT)/$(RUN)
+
+.PHONY: compare-di-default compare-di-anyio200
+compare-di-default:
+	$(MAKE) --no-print-directory compose-up ANYIO_TOKENS=40
+	$(MAKE) --no-print-directory wait-healthy
+	$(MAKE) --no-print-directory compare-di RUN=compare-di-default
+
+compare-di-anyio200:
+	$(MAKE) --no-print-directory compose-up ANYIO_TOKENS=200
+	$(MAKE) --no-print-directory wait-healthy
+	$(MAKE) --no-print-directory compare-di RUN=compare-di-anyio200
