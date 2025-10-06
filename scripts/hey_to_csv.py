@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
-"""Parse hey benchmark logs into enriched summaries.
-
-The script continues to emit a CSV for quick spreadsheet work, but also writes
-an aggregate JSON report with richer per-endpoint stats so we can compare runs
-without spelunking individual log files.
-"""
+"""Parse hey benchmark logs and emit a JSON summary."""
 
 from __future__ import annotations
 
-import csv
 import json
 import re
 import sys
@@ -20,9 +14,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 LOG_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("logs")
-OUTPUT_CSV = Path(sys.argv[2]) if len(sys.argv) > 2 else LOG_DIR / "summary.csv"
+OUTPUT_JSON = Path(sys.argv[2]) if len(sys.argv) > 2 else LOG_DIR / "summary.json"
 RUN_NAME = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else None
-OUTPUT_JSON = OUTPUT_CSV.with_suffix(".json")
 
 
 SANITIZE_REPL = {"/": "-"}
@@ -38,14 +31,20 @@ def sanitize_endpoint(endpoint: str) -> str:
 def load_endpoint_map() -> dict[str, str]:
     makefile = ROOT / "Makefile"
     if not makefile.exists():
-        return {}
+        raise FileNotFoundError("Makefile not found for endpoint inference")
 
     text = makefile.read_text()
     match = re.search(r"ENDPOINTS\s*:=\s*(.*?)(?:\n\S|\Z)", text, re.DOTALL)
     if not match:
-        return {}
+        raise ValueError("Could not locate ENDPOINTS block in Makefile")
 
-    endpoints = re.findall(r"(/[^\\s]+)", match.group(1))
+    endpoints: list[str] = []
+    for line in match.group(1).splitlines():
+        cleaned = line.strip().rstrip("\\").strip()
+        if cleaned and cleaned.startswith("/"):
+            endpoints.append(cleaned)
+    if not endpoints:
+        raise ValueError("No endpoints parsed from ENDPOINTS block")
     mapping: dict[str, str] = {}
     for endpoint in endpoints:
         mapping[sanitize_endpoint(endpoint)] = endpoint
@@ -58,46 +57,28 @@ ENDPOINT_MAP = load_endpoint_map()
 def infer_run(path: Path) -> str:
     if RUN_NAME:
         return RUN_NAME
-    try:
-        relative = path.relative_to(LOG_DIR)
-    except ValueError:
-        return LOG_DIR.name
-
-    if relative.parts:
-        first = relative.parts[0]
-        if first.startswith("-"):
-            return LOG_DIR.name
-        if LOG_DIR.name == "logs" and len(relative.parts) >= 1:
-            return first
-    return LOG_DIR.name
+    relative = path.relative_to(LOG_DIR)
+    if not relative.parts:
+        raise ValueError(f"Could not infer run name from {path}")
+    return relative.parts[0]
 
 
 def sanitized_endpoint_from_path(path: Path) -> str:
-    try:
-        relative = path.relative_to(LOG_DIR)
-    except ValueError:
-        return ""
+    relative = path.relative_to(LOG_DIR)
 
     for part in relative.parts:
         if part.startswith("-"):
             return part
-    # Fallback: if no leading dash, pick directory name
-    if relative.parts:
-        return relative.parts[0]
-    return path.parent.name
+    raise ValueError(f"Could not infer sanitized endpoint from {path}")
 
 
 def infer_endpoint(path: Path) -> tuple[str, str]:
     sanitized = sanitized_endpoint_from_path(path)
-    endpoint = ENDPOINT_MAP.get(sanitized)
-    if endpoint:
-        return endpoint, sanitized
-
-    fallback = sanitized
-    if fallback.startswith("-"):
-        fallback = "/" + fallback.lstrip("-")
-    fallback = fallback.replace("-", "/")
-    return fallback, sanitized
+    try:
+        endpoint = ENDPOINT_MAP[sanitized]
+    except KeyError as exc:
+        raise KeyError(f"Endpoint mapping not found for {sanitized}") from exc
+    return endpoint, sanitized
 
 
 FLOAT_PATTERNS = {
@@ -212,45 +193,6 @@ if not samples:
     print(f"No hey logs found under {LOG_DIR}")
     sys.exit(0)
 
-# CSV -------------------------------------------------------------------------
-OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
-fieldnames = [
-    "run",
-    "endpoint",
-    "concurrency",
-    "requests_per_sec",
-    "total_responses",
-    "successes",
-    "failures",
-    "average_latency_s",
-    "p50_s",
-    "p95_s",
-    "p99_s",
-    "file",
-]
-
-with OUTPUT_CSV.open("w", newline="") as fh:
-    writer = csv.DictWriter(fh, fieldnames=fieldnames)
-    writer.writeheader()
-    for sample in samples:
-        writer.writerow(
-            {
-                "run": sample.run,
-                "endpoint": sample.endpoint,
-                "concurrency": sample.concurrency,
-                "requests_per_sec": sample.metrics.get("requests_per_sec"),
-                "total_responses": sample.total_responses or None,
-                "successes": sample.successes or None,
-                "failures": sample.failures or None,
-                "average_latency_s": sample.metrics.get("average_seconds"),
-                "p50_s": sample.metrics.get("p50"),
-                "p95_s": sample.metrics.get("p95"),
-                "p99_s": sample.metrics.get("p99"),
-                "file": sample.file,
-            }
-        )
-
-# JSON ------------------------------------------------------------------------
 run_groups: dict[str, list[Sample]] = defaultdict(list)
 for sample in samples:
     run_groups[sample.run].append(sample)
@@ -341,5 +283,4 @@ for run, run_samples in sorted(run_groups.items()):
 OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT_JSON.write_text(json.dumps(json_payload, indent=2), encoding="utf-8")
 
-print(f"Wrote {OUTPUT_CSV}")
 print(f"Wrote {OUTPUT_JSON}")
