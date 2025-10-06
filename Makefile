@@ -12,7 +12,7 @@ DB_POOL_TIMEOUT ?= 30.0
 ANYIO_TOKENS ?= 40
 
 DURATION ?= 30s
-CONC ?= 5 25 50 100 250
+CONC ?= 5 25 50 100 250 500 1000
 QPS ?=
 HEADERS := -H "Authorization: Bearer $(TOKEN)"
 
@@ -35,7 +35,9 @@ ENDPOINTS := \
 	/api/v1/exp/async/loop-blocking \
 	/api/v1/exp/longhold/2
 
-LOG_DIR := logs/$(shell date +%Y%m%d-%H%M%S)
+LOG_ROOT := logs
+RUN ?= default
+LOG_DIR := $(LOG_ROOT)/$(RUN)
 BACKEND_DIR := backend
 UV := uv
 HEY := hey
@@ -67,9 +69,10 @@ EP ?= /api/v1/exp/inline-sync/filters
 
 .PHONY: sweep
 sweep:
-	mkdir -p $(LOG_DIR)
-	@for c in $(CONC); do \
-		outfile="$(LOG_DIR)/concurrency-$${c}-$(subst /,-,$(EP)).txt"; \
+	@ep_dir="$(LOG_DIR)/$(subst /,-,$(EP))"; \
+	mkdir -p "$$ep_dir"; \
+	for c in $(CONC); do \
+		outfile="$$ep_dir/concurrency-$${c}.txt"; \
 		echo "===> $(EP) -c $$c $(DURATION)"; \
 		$(HEY) -c $$c -z $(DURATION) $(if $(QPS),-q $(QPS),) $(HEADERS) "$(BASE)$(EP)" > "$$outfile" 2>&1 || true; \
 	done
@@ -105,9 +108,10 @@ check-pool-hard:
 
 .PHONY: sweep-keepalive-off
 sweep-keepalive-off:
-	mkdir -p $(LOG_DIR)
-	@for c in $(CONC); do \
-		outfile="$(LOG_DIR)/kaoff-concurrency-$${c}-$(subst /,-,$(EP)).txt"; \
+	@ep_dir="$(LOG_DIR)/$(subst /,-,$(EP))"; \
+	mkdir -p "$$ep_dir"; \
+	for c in $(CONC); do \
+		outfile="$$ep_dir/kaoff-concurrency-$${c}.txt"; \
 		$(HEY) -disable-keepalive -c $$c -z $(DURATION) $(HEADERS) "$(BASE)$(EP)" > "$$outfile" 2>&1 || true; \
 	done
 
@@ -115,5 +119,9 @@ PARSE_DIR ?= $(LOG_DIR)
 
 .PHONY: parse
 parse:
-	python3 scripts/hey_to_csv.py "$(PARSE_DIR)" "$(PARSE_DIR)/summary.csv"
-	@echo "Parsed -> $(PARSE_DIR)/summary.csv"
+	@if [ ! -d "$(PARSE_DIR)" ]; then \
+		echo "No logs found at $(PARSE_DIR). Set RUN=<name> if you recorded under a different run."; \
+		exit 1; \
+	fi
+	uv run python scripts/hey_to_csv.py "$(PARSE_DIR)" "$(PARSE_DIR)/summary.csv" "$(RUN)"
+	@echo "Parsed run '$(RUN)' -> $(PARSE_DIR)/summary.csv and $(PARSE_DIR)/summary.json"
